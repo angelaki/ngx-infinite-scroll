@@ -3,10 +3,13 @@ import {
   Directive,
   ElementRef,
   EventEmitter,
+  Inject,
+  InjectionToken,
   Input,
   NgZone,
   OnChanges,
   OnDestroy,
+  Optional,
   Output,
   SimpleChanges,
 } from '@angular/core';
@@ -40,7 +43,25 @@ export class InfiniteScrollDirective
 
   private disposeScroller?: Subscription;
 
-  constructor(private element: ElementRef, private zone: NgZone) {}
+  constructor(
+    private element: ElementRef,
+    private zone: NgZone,
+    @Optional() @Inject(NGX_INFINITE_SCROLL_DEFAULT_OPTIONS) defaultOptions?: InfiniteScrollOptions
+  ) {
+    this.applyDefaultOptions(defaultOptions);
+  }
+
+  private applyDefaultOptions(defaultOptions?: InfiniteScrollOptions) {
+    if (!defaultOptions) {
+      return;
+    }
+    for (const key of configurableDefaultOptions) {
+      if (Object.prototype.hasOwnProperty.call(defaultOptions, key)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (this[key] as any) = defaultOptions[key];
+      }
+    }
+  }
 
   ngAfterViewInit() {
     if (!this.infiniteScrollDisabled) {
@@ -113,3 +134,21 @@ function hasObservers<T>(emitter: EventEmitter<T>): boolean {
   // not available for users running the lower version.
   return emitter.observed ?? emitter.observers.length > 0;
 }
+
+export const configurableDefaultOptions = [
+  'infiniteScrollDistance',
+  'infiniteScrollUpDistance',
+  'infiniteScrollThrottle',
+  'infiniteScrollDisabled',
+  'infiniteScrollContainer',
+  'scrollWindow',
+  'immediateCheck',
+  'horizontal',
+  'alwaysCallback',
+  'fromRoot'
+] satisfies Array<keyof InfiniteScrollDirective>;
+export type ConfigurableDefaultOptions = typeof configurableDefaultOptions[number];
+
+/** Global configurable options for MatSelectSearch. */
+export type InfiniteScrollOptions = Readonly<Partial<Pick<InfiniteScrollDirective, ConfigurableDefaultOptions>>>;
+export const NGX_INFINITE_SCROLL_DEFAULT_OPTIONS = new InjectionToken<InfiniteScrollOptions>('NGX_INFINITE_SCROLL_DEFAULT_OPTIONS');
